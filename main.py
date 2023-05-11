@@ -83,25 +83,38 @@ x_test = to_rgb(x_test)
 
 model = get_model()
 
-# Create the lime explainer
-explainer = lime_image.LimeImageExplainer(random_state=42)
-explanation = explainer.explain_instance(
-         x_train[10], 
+# Take a random sample from the train dataset
+predictions = []
+# Explain 10 predictions
+for i in range(10):
+    # Take a random sample from the train dataset
+    sample_index = random.randint(0, len(x_train) - 1)
+    sample_image = x_train[sample_index]
+
+    # Create the lime explainer
+    explainer = lime_image.LimeImageExplainer(random_state=42)
+    explanation = explainer.explain_instance(
+         sample_image, 
          model.predict
-)
-# plt.imshow(x_train[10])
-image, mask = explanation.get_image_and_mask(
+    )
+    image, mask = explanation.get_image_and_mask(
          model.predict(
-              x_train[10].reshape((1,28,28,3))
+              sample_image.reshape((1,28,28,3))
          ).argmax(axis=1)[0],
          positive_only=True, 
          hide_rest=False)
+    top_label = explanation.top_labels[0]
 
-top_label = explanation.top_labels[0]
+    predictions.append({
+        'image': image,
+        'mask': mask,
+        'top_label': top_label
+    })
 
-fig, ax = plt.subplots()
-ax.imshow(mark_boundaries(image, mask))
-ax.set_title('Explanation with LIME (Label: ' + str(top_label) + ')', fontsize=12, fontweight='bold')
-# Text under the image
-
+# Plot the predictions
+fig, axs = plt.subplots(2, 5, figsize=(20, 10))
+axs = axs.flatten()
+for i in range(10):
+    axs[i].imshow(mark_boundaries(predictions[i]['image'], predictions[i]['mask']))
+    axs[i].set_title('Explanation with LIME (Label: ' + str(predictions[i]['top_label']) + ')', fontsize=8, fontweight='bold')
 plt.show()
